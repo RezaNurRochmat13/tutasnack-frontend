@@ -1,13 +1,15 @@
 import type { SalesTracker, SalesTrackerPayload } from '~/types/sales-tracker'
+import type { PaginationMeta } from '~/types/pagination'
 
 export function useSalesTracker() {
   const { request } = useApi()
 
-  async function list(): Promise<SalesTracker[]> {
-    const res: any = await request('/sales-tracker', { method: 'GET' })
-    if (res.data && Array.isArray(res.data)) return res.data as SalesTracker[]
-    if (Array.isArray(res)) return res as SalesTracker[]
-    return []
+  async function list(page = 1, limit = 10): Promise<{ data: SalesTracker[]; pagination: PaginationMeta | null }> {
+    const res: any = await request(`/sales-tracker?page=${page}&limit=${limit}`, { method: 'GET' })
+    return {
+      data: (res.data || res || []) as SalesTracker[],
+      pagination: res.pagination ?? null,
+    }
   }
 
   async function create(payload: SalesTrackerPayload): Promise<SalesTracker> {

@@ -1,13 +1,15 @@
 import type { Expense, ExpensePayload } from '~/types/expense'
+import type { PaginationMeta } from '~/types/pagination'
 
 export function useExpenses() {
   const { request } = useApi()
 
-  async function list(): Promise<Expense[]> {
-    const res: any = await request('/expenses', { method: 'GET' })
-    if (res.data && Array.isArray(res.data)) return res.data as Expense[]
-    if (Array.isArray(res)) return res as Expense[]
-    return []
+  async function list(page = 1, limit = 10): Promise<{ data: Expense[]; pagination: PaginationMeta | null }> {
+    const res: any = await request(`/expenses?page=${page}&limit=${limit}`, { method: 'GET' })
+    return {
+      data: (res.data || res || []) as Expense[],
+      pagination: res.pagination ?? null,
+    }
   }
 
   async function create(payload: ExpensePayload): Promise<Expense> {

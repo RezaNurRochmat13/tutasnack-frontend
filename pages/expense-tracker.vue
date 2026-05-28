@@ -5,22 +5,19 @@ definePageMeta({
 })
 
 import type { Expense } from '~/types/expense'
+import type { PaginationMeta } from '~/types/pagination'
 
 const { list, create, update, remove } = useExpenses()
 const toast = useToast()
 
-const allData = ref<Expense[]>([])
+const data = ref<Expense[]>([])
 const loading = ref(false)
+const pagination = ref<PaginationMeta | null>(null)
 
 const page = ref(1)
 const perPage = 10
-const totalPages = computed(() => Math.max(1, Math.ceil(allData.value.length / perPage)))
-const totalItems = computed(() => allData.value.length)
-
-const paginatedData = computed(() => {
-  const start = (page.value - 1) * perPage
-  return allData.value.slice(start, start + perPage)
-})
+const totalPages = computed(() => pagination.value?.totalPages ?? 1)
+const totalItems = computed(() => pagination.value?.total ?? 0)
 
 const showDialog = ref(false)
 const editing = ref<Expense | null>(null)
@@ -34,8 +31,9 @@ function formatDate(iso: string) {
 async function fetchData() {
   loading.value = true
   try {
-    allData.value = await list()
-    page.value = 1
+    const res = await list(page.value, perPage)
+    data.value = res.data
+    pagination.value = res.pagination
   } catch (e: any) {
     console.error(e)
   } finally {
@@ -45,6 +43,7 @@ async function fetchData() {
 
 function goToPage(p: number) {
   page.value = p
+  fetchData()
 }
 
 function openCreate() {
@@ -103,9 +102,10 @@ async function confirmDelete(id: string) {
   }
 }
 
-const totalAmount = computed(() => allData.value.reduce((sum, i) => sum + i.amount, 0))
-
-onMounted(fetchData)
+onMounted(() => {
+  page.value = 1
+  fetchData()
+})
 </script>
 
 <template>
@@ -125,9 +125,7 @@ onMounted(fetchData)
       <CardHeader class="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Expense List</CardTitle>
-          <CardDescription>
-            Total: Rp {{ totalAmount.toLocaleString() }} &middot; {{ totalItems }} entries
-          </CardDescription>
+          <CardDescription>{{ totalItems }} entries</CardDescription>
         </div>
       </CardHeader>
       <CardContent class="p-0">
@@ -135,7 +133,7 @@ onMounted(fetchData)
           <AppIcon name="lucide:loader-circle" class="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
 
-        <template v-else-if="allData.length === 0">
+        <template v-else-if="data.length === 0">
           <div class="py-12 text-center text-sm text-muted-foreground">
             No expenses yet. Click "Add Expense" to create one.
           </div>
@@ -154,7 +152,7 @@ onMounted(fetchData)
             </thead>
             <tbody>
               <tr
-                v-for="(item, index) in paginatedData"
+                v-for="(item, index) in data"
                 :key="item.id"
                 class="border-b last:border-0 hover:bg-muted/50"
               >

@@ -6,25 +6,22 @@ definePageMeta({
 
 import type { SalesTracker } from '~/types/sales-tracker'
 import type { Store } from '~/types/store'
+import type { PaginationMeta } from '~/types/pagination'
 
 const toast = useToast()
 
 const { list, create, update, remove } = useSalesTracker()
 const { list: listStores } = useStores()
 
-const allData = ref<SalesTracker[]>([])
+const data = ref<SalesTracker[]>([])
 const stores = ref<Store[]>([])
 const loading = ref(false)
+const pagination = ref<PaginationMeta | null>(null)
 
 const page = ref(1)
 const perPage = 10
-const totalPages = computed(() => Math.max(1, Math.ceil(allData.value.length / perPage)))
-const totalItems = computed(() => allData.value.length)
-
-const paginatedData = computed(() => {
-  const start = (page.value - 1) * perPage
-  return allData.value.slice(start, start + perPage)
-})
+const totalPages = computed(() => pagination.value?.totalPages ?? 1)
+const totalItems = computed(() => pagination.value?.total ?? 0)
 
 const showDialog = ref(false)
 const editing = ref<SalesTracker | null>(null)
@@ -38,9 +35,13 @@ function formatDate(iso: string) {
 async function fetchData() {
   loading.value = true
   try {
-    allData.value = await list()
-    stores.value = await listStores()
-    page.value = 1
+    const [res, storeList] = await Promise.all([
+      list(page.value, perPage),
+      listStores(),
+    ])
+    data.value = res.data
+    pagination.value = res.pagination
+    stores.value = storeList
   } catch (e: any) {
     console.error(e)
   } finally {
@@ -50,6 +51,7 @@ async function fetchData() {
 
 function goToPage(p: number) {
   page.value = p
+  fetchData()
 }
 
 function openCreate() {
@@ -83,7 +85,6 @@ function parseApiError(e: any): string {
 async function handleSave() {
   formError.value = ''
   if (!form.storeId) { formError.value = 'Please select a store'; return }
-  if (form.saleCount <= 0) { formError.value = 'Sale count must be greater than 0'; return }
 
   try {
     if (editing.value) {
@@ -120,10 +121,10 @@ async function confirmDelete(id: string) {
   }
 }
 
-const totalSales = computed(() => allData.value.reduce((sum, i) => sum + i.saleCount, 0))
-const totalSold = computed(() => allData.value.reduce((sum, i) => sum + i.soldCount, 0))
-
-onMounted(fetchData)
+onMounted(() => {
+  page.value = 1
+  fetchData()
+})
 </script>
 
 <template>
@@ -131,7 +132,7 @@ onMounted(fetchData)
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold">Sales Tracker</h1>
-        <p class="text-sm text-muted-foreground">Track your sales transactions and items sold</p>
+        <p class="text-sm text-muted-foreground">Monitor your daily sales performance</p>
       </div>
       <Button @click="openCreate">
         <AppIcon name="lucide:plus" class="mr-2 h-4 w-4" />
@@ -142,12 +143,8 @@ onMounted(fetchData)
     <Card>
       <CardHeader class="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Sales Tracker Entries</CardTitle>
-          <CardDescription>
-            {{ totalItems }} entries &middot;
-            {{ totalSales }} total sales &middot;
-            {{ totalSold }} total items sold
-          </CardDescription>
+          <CardTitle>Tracker List</CardTitle>
+          <CardDescription>{{ totalItems }} entries</CardDescription>
         </div>
       </CardHeader>
       <CardContent class="p-0">
@@ -155,7 +152,7 @@ onMounted(fetchData)
           <AppIcon name="lucide:loader-circle" class="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
 
-        <template v-else-if="allData.length === 0">
+        <template v-else-if="data.length === 0">
           <div class="py-12 text-center text-sm text-muted-foreground">
             No tracker entries yet. Click "Add Entry" to create one.
           </div>
@@ -175,7 +172,7 @@ onMounted(fetchData)
             </thead>
             <tbody>
               <tr
-                v-for="(item, index) in paginatedData"
+                v-for="(item, index) in data"
                 :key="item.id"
                 class="border-b last:border-0 hover:bg-muted/50"
               >
@@ -229,18 +226,18 @@ onMounted(fetchData)
     <div v-if="showDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <Card class="w-full max-w-md mx-4">
         <CardHeader>
-          <CardTitle>{{ editing ? 'Edit Entry' : 'Add Entry' }}</CardTitle>
-          <CardDescription>{{ editing ? 'Update the tracker entry' : 'Record a new tracker entry' }}</CardDescription>
+          <CardTitle>{{ editing ? 'Edit Tracker Entry' : 'Add Tracker Entry' }}</CardTitle>
+          <CardDescription>{{ editing ? 'Update the tracker entry' : 'Record a new sales tracker entry' }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="space-y-2">
-            <Label for="tr-date">Date</Label>
-            <Input id="tr-date" v-model="form.salesDate" type="date" />
+            <Label for="track-date">Date</Label>
+            <Input id="track-date" v-model="form.salesDate" type="date" />
           </div>
           <div class="space-y-2">
-            <Label for="tr-store">Store</Label>
+            <Label for="track-store">Store</Label>
             <select
-              id="tr-store"
+              id="track-store"
               v-model="form.storeId"
               class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
             >
@@ -249,12 +246,12 @@ onMounted(fetchData)
             </select>
           </div>
           <div class="space-y-2">
-            <Label for="tr-sale-count">Sale Count</Label>
-            <Input id="tr-sale-count" v-model.number="form.saleCount" type="number" min="0" placeholder="0" />
+            <Label for="track-sale">Sale Count</Label>
+            <Input id="track-sale" v-model.number="form.saleCount" type="number" min="0" placeholder="0" />
           </div>
           <div class="space-y-2">
-            <Label for="tr-sold-count">Sold Count</Label>
-            <Input id="tr-sold-count" v-model.number="form.soldCount" type="number" min="0" placeholder="0" />
+            <Label for="track-sold">Sold Count</Label>
+            <Input id="track-sold" v-model.number="form.soldCount" type="number" min="0" placeholder="0" />
           </div>
           <div v-if="formError" class="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
             {{ formError }}
