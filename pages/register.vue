@@ -3,17 +3,28 @@ definePageMeta({
   layout: 'auth',
 })
 
+const store = useAuthStore()
+const { register } = useAuth()
+
 const name = ref('')
 const email = ref('')
 const password = ref('')
 const confirmPassword = ref('')
-const loading = ref(false)
+const error = ref('')
 
 async function handleRegister() {
-  loading.value = true
-  // TODO: implement register logic
-  await navigateTo('/dashboard')
-  loading.value = false
+  error.value = ''
+
+  if (password.value !== confirmPassword.value) {
+    error.value = 'Passwords do not match'
+    return
+  }
+
+  try {
+    await register({ name: name.value, email: email.value, password: password.value })
+  } catch (e: any) {
+    error.value = e.message
+  }
 }
 </script>
 
@@ -44,9 +55,12 @@ async function handleRegister() {
           <Label for="confirmPassword">Confirm Password</Label>
           <Input id="confirmPassword" v-model="confirmPassword" type="password" placeholder="••••••••" />
         </div>
-        <Button type="submit" class="w-full" :disabled="loading">
-          <Icon v-if="loading" name="lucide:loader-circle" class="mr-2 h-4 w-4 animate-spin" />
-          {{ loading ? 'Creating account...' : 'Create Account' }}
+        <div v-if="error" class="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          {{ error }}
+        </div>
+        <Button type="submit" class="w-full" :disabled="store.loading">
+          <Icon v-if="store.loading" name="lucide:loader-circle" class="mr-2 h-4 w-4 animate-spin" />
+          {{ store.loading ? 'Creating account...' : 'Create Account' }}
         </Button>
       </form>
     </CardContent>

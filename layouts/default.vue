@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const store = useAuthStore()
 const colorMode = useColorMode()
 
 function toggleTheme() {
@@ -24,7 +25,7 @@ function toggleTheme() {
         <div class="flex items-center gap-3">
           <Icon name="lucide:bell" class="h-5 w-5 text-muted-foreground" />
           <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-            A
+            {{ store.user?.name?.charAt(0) || 'U' }}
           </div>
         </div>
       </header>

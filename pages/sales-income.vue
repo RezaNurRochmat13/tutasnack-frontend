@@ -1,6 +1,7 @@
 <script setup lang="ts">
 definePageMeta({
   layout: 'default',
+  middleware: 'auth',
 })
 
 const periods = ['Today', 'This Week', 'This Month', 'Custom']

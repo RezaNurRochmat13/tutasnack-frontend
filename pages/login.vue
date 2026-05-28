@@ -3,15 +3,20 @@ definePageMeta({
   layout: 'auth',
 })
 
+const store = useAuthStore()
+const { login } = useAuth()
+
 const email = ref('')
 const password = ref('')
-const loading = ref(false)
+const error = ref('')
 
 async function handleLogin() {
-  loading.value = true
-  // TODO: implement login logic
-  await navigateTo('/dashboard')
-  loading.value = false
+  error.value = ''
+  try {
+    await login({ email: email.value, password: password.value })
+  } catch (e: any) {
+    error.value = e.message
+  }
 }
 </script>
 
@@ -39,9 +44,12 @@ async function handleLogin() {
           </div>
           <Input id="password" v-model="password" type="password" placeholder="••••••••" />
         </div>
-        <Button type="submit" class="w-full" :disabled="loading">
-          <Icon v-if="loading" name="lucide:loader-circle" class="mr-2 h-4 w-4 animate-spin" />
-          {{ loading ? 'Signing in...' : 'Sign In' }}
+        <div v-if="error" class="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          {{ error }}
+        </div>
+        <Button type="submit" class="w-full" :disabled="store.loading">
+          <Icon v-if="store.loading" name="lucide:loader-circle" class="mr-2 h-4 w-4 animate-spin" />
+          {{ store.loading ? 'Signing in...' : 'Sign In' }}
         </Button>
       </form>
     </CardContent>

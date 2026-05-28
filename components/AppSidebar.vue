@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useNavigation } from '~/composables/useNavigation'
-
+const store = useAuthStore()
 const { navItems } = useNavigation()
+const { logout } = useAuth()
 const route = useRoute()
 
 function isActive(item: { to: string }) {
@@ -45,12 +45,12 @@ function isActive(item: { to: string }) {
           <Icon name="lucide:user" class="h-4 w-4 text-sidebar-foreground" />
         </div>
         <div class="flex flex-col">
-          <span class="text-sm font-medium text-sidebar-foreground">Admin</span>
-          <span class="text-xs text-sidebar-foreground/60">admin@tutasnack.com</span>
+          <span class="text-sm font-medium text-sidebar-foreground">{{ store.user?.name || 'User' }}</span>
+          <span class="text-xs text-sidebar-foreground/60">{{ store.user?.email || '' }}</span>
         </div>
-        <NuxtLink to="/login" class="ml-auto text-sidebar-foreground/60 hover:text-sidebar-foreground">
+        <button class="ml-auto text-sidebar-foreground/60 hover:text-sidebar-foreground" @click="logout">
           <Icon name="lucide:log-out" class="h-5 w-5" />
-        </NuxtLink>
+        </button>
       </div>
     </div>
   </aside>
