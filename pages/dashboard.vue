@@ -127,7 +127,8 @@ function monthName(m: string) {
           </div>
         </CardHeader>
         <CardContent class="p-0">
-          <table class="w-full">
+          <div class="overflow-x-auto">
+            <table class="w-full">
             <thead>
               <tr class="border-b text-left text-xs font-medium text-muted-foreground">
                 <th class="w-10 px-6 py-3">#</th>
@@ -147,6 +148,7 @@ function monthName(m: string) {
               </tr>
             </tbody>
           </table>
+          </div>
 
           <div v-if="monthlyData.length === 0" class="py-12 text-center text-sm text-muted-foreground">
             No data for {{ selectedYear }}

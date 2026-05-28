@@ -5,6 +5,9 @@ const { logout } = useAuth()
 const toast = useToast()
 const route = useRoute()
 
+defineProps<{ open: boolean }>()
+const emit = defineEmits<{ close: [] }>()
+
 function isActive(item: { to: string }) {
   return route.path === item.to
 }
@@ -13,10 +16,25 @@ function handleLogout() {
   toast.info('Logged out')
   logout()
 }
+
+function handleNavClick() {
+  emit('close')
+}
 </script>
 
 <template>
-  <aside class="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-sidebar">
+  <Teleport to="body">
+    <div
+      v-if="open"
+      class="fixed inset-0 z-30 bg-black/50 lg:hidden"
+      @click="emit('close')"
+    />
+  </Teleport>
+
+  <aside
+    class="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-sidebar transition-transform duration-200"
+    :class="open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+  >
     <div class="flex h-16 items-center gap-3 border-b border-sidebar-muted px-6">
       <img src="/img/tuta-snack-white.png" alt="TutaSnack" class="h-8 w-auto" />
       <span class="text-lg font-bold text-sidebar-foreground">TutaSnack</span>
@@ -31,6 +49,7 @@ function handleLogout() {
         :class="isActive(item)
           ? 'bg-sidebar-accent text-sidebar-foreground'
           : 'text-sidebar-foreground/70 hover:bg-sidebar-muted hover:text-sidebar-foreground'"
+        @click="handleNavClick"
       >
         <AppIcon :name="`lucide:${item.icon}`" class="h-5 w-5" />
         <span>{{ item.label }}</span>

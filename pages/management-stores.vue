@@ -141,7 +141,8 @@ onMounted(fetchData)
         </template>
 
         <template v-else>
-          <table class="w-full">
+          <div class="overflow-x-auto">
+            <table class="w-full">
             <thead>
               <tr class="border-b text-left text-xs font-medium text-muted-foreground">
                 <th class="w-10 px-6 py-3">#</th>
@@ -174,25 +175,26 @@ onMounted(fetchData)
               </tr>
             </tbody>
           </table>
+          </div>
 
-          <div v-if="totalPages > 1" class="flex items-center justify-between border-t px-6 py-3">
-            <p class="text-sm text-muted-foreground">
-              Page {{ page }} of {{ totalPages }}
-            </p>
-            <div class="flex gap-1">
+          <div v-if="totalPages > 1" class="flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p class="text-sm text-muted-foreground">Page {{ page }} of {{ totalPages }}</p>
+            <div class="flex flex-wrap gap-1">
               <Button variant="outline" size="sm" :disabled="page <= 1" @click="goToPage(page - 1)">
                 <AppIcon name="lucide:chevron-left" class="h-4 w-4" />
                 Prev
               </Button>
-              <Button
-                v-for="p in totalPages"
-                :key="p"
-                :variant="p === page ? 'default' : 'outline'"
-                size="sm"
-                @click="goToPage(p)"
-              >
-                {{ p }}
-              </Button>
+              <div class="hidden gap-1 sm:flex">
+                <Button
+                  v-for="p in totalPages"
+                  :key="p"
+                  :variant="p === page ? 'default' : 'outline'"
+                  size="sm"
+                  @click="goToPage(p)"
+                >
+                  {{ p }}
+                </Button>
+              </div>
               <Button variant="outline" size="sm" :disabled="page >= totalPages" @click="goToPage(page + 1)">
                 Next
                 <AppIcon name="lucide:chevron-right" class="h-4 w-4" />
