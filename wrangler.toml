@@ -2,3 +2,6 @@ name = "tutasnack-frontend"
 compatibility_date = "2026-05-28"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
+
+[vars]
+NUXT_PUBLIC_API_BASE_URL = "https://tutasnack-backend.rezanurrochmat.workers.dev/api"
