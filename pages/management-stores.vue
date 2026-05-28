@@ -25,6 +25,7 @@ const paginatedData = computed(() => {
 const showDialog = ref(false)
 const editing = ref<Store | null>(null)
 const formError = ref('')
+const submitting = ref(false)
 const form = reactive({ name: '', description: '', address: '' })
 
 async function fetchData() {
@@ -77,6 +78,7 @@ async function handleSave() {
   if (form.description.trim()) payload.description = form.description
   if (form.address.trim()) payload.address = form.address
 
+  submitting.value = true
   try {
     if (editing.value) {
       await update(editing.value.id, payload)
@@ -88,6 +90,8 @@ async function handleSave() {
     toast.success(editing.value ? 'Store updated' : 'Store created')
   } catch (e: any) {
     formError.value = parseApiError(e)
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -223,7 +227,10 @@ onMounted(fetchData)
           </div>
           <div class="flex gap-2">
             <Button variant="outline" class="flex-1" @click="showDialog = false">Cancel</Button>
-            <Button class="flex-1" @click="handleSave">{{ editing ? 'Update' : 'Save' }}</Button>
+            <Button class="flex-1" :disabled="submitting" @click="handleSave">
+              <AppIcon v-if="submitting" name="lucide:loader-circle" class="mr-2 h-4 w-4 animate-spin" />
+              {{ editing ? 'Update' : 'Save' }}
+            </Button>
           </div>
         </CardContent>
       </Card>
