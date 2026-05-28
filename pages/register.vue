@@ -5,6 +5,7 @@ definePageMeta({
 
 const store = useAuthStore()
 const { register } = useAuth()
+const toast = useToast()
 
 const name = ref('')
 const email = ref('')
@@ -22,8 +23,10 @@ async function handleRegister() {
 
   try {
     await register({ name: name.value, email: email.value, password: password.value })
+    toast.success('Account created! Welcome!')
   } catch (e: any) {
-    error.value = e.message
+    const issues = e?.body?.error?.issues
+    error.value = issues ? issues.map((i: any) => i.message).join(', ') : (e?.body?.message || e.message || 'Registration failed')
   }
 }
 </script>

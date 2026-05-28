@@ -7,6 +7,8 @@ definePageMeta({
 import type { SalesIncome } from '~/types/sales-income'
 import type { Store } from '~/types/store'
 
+const toast = useToast()
+
 const { list, create, update, remove } = useSalesIncome()
 const { list: listStores } = useStores()
 
@@ -97,6 +99,7 @@ async function handleSave() {
     }
     showDialog.value = false
     await fetchData()
+    toast.success(editing.value ? 'Income entry updated' : 'Income entry created')
   } catch (e: any) {
     formError.value = parseApiError(e)
   }
@@ -107,8 +110,9 @@ async function confirmDelete(id: string) {
   try {
     await remove(id)
     await fetchData()
+    toast.success('Income entry deleted')
   } catch (e: any) {
-    console.error(e)
+    toast.error(parseApiError(e))
   }
 }
 

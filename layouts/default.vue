@@ -34,5 +34,7 @@ function toggleTheme() {
         <slot />
       </main>
     </div>
+
+    <ToastDisplay />
   </div>
 </template>

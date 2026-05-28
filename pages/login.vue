@@ -5,6 +5,7 @@ definePageMeta({
 
 const store = useAuthStore()
 const { login } = useAuth()
+const toast = useToast()
 
 const email = ref('')
 const password = ref('')
@@ -14,8 +15,10 @@ async function handleLogin() {
   error.value = ''
   try {
     await login({ email: email.value, password: password.value })
+    toast.success('Welcome back!')
   } catch (e: any) {
-    error.value = e.message
+    const issues = e?.body?.error?.issues
+    error.value = issues ? issues.map((i: any) => i.message).join(', ') : (e?.body?.message || e.message || 'Login failed')
   }
 }
 </script>

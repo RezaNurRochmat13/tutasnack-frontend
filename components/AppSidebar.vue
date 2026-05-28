@@ -2,10 +2,16 @@
 const store = useAuthStore()
 const { navItems } = useNavigation()
 const { logout } = useAuth()
+const toast = useToast()
 const route = useRoute()
 
 function isActive(item: { to: string }) {
   return route.path === item.to
+}
+
+function handleLogout() {
+  toast.info('Logged out')
+  logout()
 }
 </script>
 
@@ -46,7 +52,7 @@ function isActive(item: { to: string }) {
           <span class="text-sm font-medium text-sidebar-foreground">{{ store.user?.name || 'User' }}</span>
           <span class="text-xs text-sidebar-foreground/60">{{ store.user?.email || '' }}</span>
         </div>
-        <button class="ml-auto text-sidebar-foreground/60 hover:text-sidebar-foreground" @click="logout">
+        <button class="ml-auto text-sidebar-foreground/60 hover:text-sidebar-foreground" @click="handleLogout">
           <AppIcon name="lucide:log-out" class="h-5 w-5" />
         </button>
       </div>
