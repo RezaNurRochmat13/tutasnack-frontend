@@ -6,7 +6,7 @@ export function useNavigation() {
     { label: 'Sales Income', icon: 'trending-up', to: '/sales-income' },
     { label: 'Sales Tracker', icon: 'shopping-cart', to: '/sales-tracker' },
     { label: 'Expense Tracker', icon: 'wallet', to: '/expense-tracker' },
-    { label: 'Management Users', icon: 'users', to: '/management-users' },
+    { label: 'Stores', icon: 'store', to: '/management-stores' },
   ]
 
   return { navItems }

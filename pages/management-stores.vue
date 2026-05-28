@@ -4,16 +4,12 @@ definePageMeta({
   middleware: 'auth',
 })
 
-import type { SalesIncome } from '~/types/sales-income'
 import type { Store } from '~/types/store'
 
+const { list, create, update, remove } = useStores()
 const toast = useToast()
 
-const { list, create, update, remove } = useSalesIncome()
-const { list: listStores } = useStores()
-
-const allData = ref<SalesIncome[]>([])
-const stores = ref<Store[]>([])
+const allData = ref<Store[]>([])
 const loading = ref(false)
 
 const page = ref(1)
@@ -27,19 +23,14 @@ const paginatedData = computed(() => {
 })
 
 const showDialog = ref(false)
-const editing = ref<SalesIncome | null>(null)
+const editing = ref<Store | null>(null)
 const formError = ref('')
-const form = reactive({ salesDate: '', amount: 0, storeId: '' })
-
-function formatDate(iso: string) {
-  return iso.split('T')[0]
-}
+const form = reactive({ name: '', description: '', address: '' })
 
 async function fetchData() {
   loading.value = true
   try {
     allData.value = await list()
-    stores.value = await listStores()
     page.value = 1
   } catch (e: any) {
     console.error(e)
@@ -55,18 +46,18 @@ function goToPage(p: number) {
 function openCreate() {
   editing.value = null
   formError.value = ''
-  form.salesDate = new Date().toISOString().split('T')[0]
-  form.amount = 0
-  form.storeId = stores.value[0]?.id || ''
+  form.name = ''
+  form.description = ''
+  form.address = ''
   showDialog.value = true
 }
 
-function openEdit(item: SalesIncome) {
+function openEdit(item: Store) {
   editing.value = item
   formError.value = ''
-  form.salesDate = formatDate(item.salesDate)
-  form.amount = item.amount
-  form.storeId = item.storeId
+  form.name = item.name
+  form.description = item.description || ''
+  form.address = item.address || ''
   showDialog.value = true
 }
 
@@ -80,43 +71,36 @@ function parseApiError(e: any): string {
 
 async function handleSave() {
   formError.value = ''
-  if (!form.storeId) { formError.value = 'Please select a store'; return }
-  if (form.amount <= 0) { formError.value = 'Amount must be greater than 0'; return }
+  if (!form.name.trim()) { formError.value = 'Name is required'; return }
+
+  const payload: any = { name: form.name }
+  if (form.description.trim()) payload.description = form.description
+  if (form.address.trim()) payload.address = form.address
 
   try {
     if (editing.value) {
-      await update(editing.value.id, {
-        salesDate: form.salesDate,
-        amount: form.amount,
-        storeId: form.storeId,
-      })
+      await update(editing.value.id, payload)
     } else {
-      await create({
-        salesDate: form.salesDate,
-        amount: form.amount,
-        storeId: form.storeId,
-      })
+      await create(payload)
     }
     showDialog.value = false
     await fetchData()
-    toast.success(editing.value ? 'Income entry updated' : 'Income entry created')
+    toast.success(editing.value ? 'Store updated' : 'Store created')
   } catch (e: any) {
     formError.value = parseApiError(e)
   }
 }
 
 async function confirmDelete(id: string) {
-  if (!confirm('Delete this income entry?')) return
+  if (!confirm('Delete this store?')) return
   try {
     await remove(id)
     await fetchData()
-    toast.success('Income entry deleted')
+    toast.success('Store deleted')
   } catch (e: any) {
     toast.error(parseApiError(e))
   }
 }
-
-const totalIncome = computed(() => allData.value.reduce((sum, i) => sum + i.amount, 0))
 
 onMounted(fetchData)
 </script>
@@ -125,20 +109,20 @@ onMounted(fetchData)
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Sales Income</h1>
-        <p class="text-sm text-muted-foreground">Track your revenue and earnings</p>
+        <h1 class="text-2xl font-bold">Stores</h1>
+        <p class="text-sm text-muted-foreground">Manage your store locations</p>
       </div>
       <Button @click="openCreate">
         <AppIcon name="lucide:plus" class="mr-2 h-4 w-4" />
-        Add Income
+        Add Store
       </Button>
     </div>
 
     <Card>
       <CardHeader class="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Income List</CardTitle>
-          <CardDescription>Total: Rp {{ totalIncome.toLocaleString() }} &middot; {{ totalItems }} entries</CardDescription>
+          <CardTitle>Store List</CardTitle>
+          <CardDescription>{{ totalItems }} locations</CardDescription>
         </div>
       </CardHeader>
       <CardContent class="p-0">
@@ -148,7 +132,7 @@ onMounted(fetchData)
 
         <template v-else-if="allData.length === 0">
           <div class="py-12 text-center text-sm text-muted-foreground">
-            No income entries yet. Click "Add Income" to create one.
+            No stores yet. Click "Add Store" to create one.
           </div>
         </template>
 
@@ -157,9 +141,9 @@ onMounted(fetchData)
             <thead>
               <tr class="border-b text-left text-xs font-medium text-muted-foreground">
                 <th class="w-10 px-6 py-3">#</th>
-                <th class="px-6 py-3">Store</th>
-                <th class="px-6 py-3">Date</th>
-                <th class="px-6 py-3 text-right">Amount</th>
+                <th class="px-6 py-3">Name</th>
+                <th class="px-6 py-3">Description</th>
+                <th class="px-6 py-3">Address</th>
                 <th class="px-6 py-3 text-right w-28">Action</th>
               </tr>
             </thead>
@@ -170,9 +154,9 @@ onMounted(fetchData)
                 class="border-b last:border-0 hover:bg-muted/50"
               >
                 <td class="px-6 py-4 text-sm text-muted-foreground">{{ (page - 1) * perPage + index + 1 }}</td>
-                <td class="px-6 py-4 text-sm">{{ item.store?.name || '-' }}</td>
-                <td class="px-6 py-4 text-sm">{{ formatDate(item.salesDate) }}</td>
-                <td class="px-6 py-4 text-sm text-right font-medium">Rp {{ item.amount.toLocaleString() }}</td>
+                <td class="px-6 py-4 text-sm font-medium">{{ item.name }}</td>
+                <td class="px-6 py-4 text-sm text-muted-foreground">{{ item.description || '—' }}</td>
+                <td class="px-6 py-4 text-sm text-muted-foreground">{{ item.address || '—' }}</td>
                 <td class="px-6 py-4 text-right">
                   <div class="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" @click="openEdit(item)">
@@ -192,12 +176,7 @@ onMounted(fetchData)
               Page {{ page }} of {{ totalPages }}
             </p>
             <div class="flex gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                :disabled="page <= 1"
-                @click="goToPage(page - 1)"
-              >
+              <Button variant="outline" size="sm" :disabled="page <= 1" @click="goToPage(page - 1)">
                 <AppIcon name="lucide:chevron-left" class="h-4 w-4" />
                 Prev
               </Button>
@@ -210,12 +189,7 @@ onMounted(fetchData)
               >
                 {{ p }}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                :disabled="page >= totalPages"
-                @click="goToPage(page + 1)"
-              >
+              <Button variant="outline" size="sm" :disabled="page >= totalPages" @click="goToPage(page + 1)">
                 Next
                 <AppIcon name="lucide:chevron-right" class="h-4 w-4" />
               </Button>
@@ -228,30 +202,23 @@ onMounted(fetchData)
     <div v-if="showDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <Card class="w-full max-w-md mx-4">
         <CardHeader>
-          <CardTitle>{{ editing ? 'Edit Income' : 'Add Income' }}</CardTitle>
-          <CardDescription>{{ editing ? 'Update the income entry' : 'Record a new income entry' }}</CardDescription>
+          <CardTitle>{{ editing ? 'Edit Store' : 'Add Store' }}</CardTitle>
+          <CardDescription>{{ editing ? 'Update the store details' : 'Register a new store location' }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="space-y-2">
-            <Label for="inc-date">Date</Label>
-            <Input id="inc-date" v-model="form.salesDate" type="date" />
+            <Label for="store-name">Store Name</Label>
+            <Input id="store-name" v-model="form.name" placeholder="e.g. TutaSnack Kemanggisan" />
           </div>
           <div class="space-y-2">
-            <Label for="inc-store">Store</Label>
-            <select
-              id="inc-store"
-              v-model="form.storeId"
-              class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-            >
-              <option value="" disabled>Select store</option>
-              <option v-for="s in stores" :key="s.id" :value="s.id">{{ s.name }}</option>
-            </select>
+            <Label for="store-desc">Description <span class="text-muted-foreground">(optional)</span></Label>
+            <Input id="store-desc" v-model="form.description" placeholder="e.g. Main branch" />
           </div>
           <div class="space-y-2">
-            <Label for="inc-amount">Amount (Rp)</Label>
-            <Input id="inc-amount" v-model.number="form.amount" type="number" min="0" placeholder="0" />
+            <Label for="store-addr">Address <span class="text-muted-foreground">(optional)</span></Label>
+            <Input id="store-addr" v-model="form.address" placeholder="e.g. Jl. Kemanggisan No. 123" />
           </div>
-          <div v-if="formError" class="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          <div v-if="formError" class="rounded-md bg-destructive/10 p-3 text-sm text-destructive whitespace-pre-line">
             {{ formError }}
           </div>
           <div class="flex gap-2">

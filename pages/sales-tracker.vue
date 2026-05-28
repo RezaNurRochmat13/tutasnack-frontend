@@ -165,6 +165,7 @@ onMounted(fetchData)
           <table class="w-full">
             <thead>
               <tr class="border-b text-left text-xs font-medium text-muted-foreground">
+                <th class="w-10 px-6 py-3">#</th>
                 <th class="px-6 py-3">Date</th>
                 <th class="px-6 py-3">Store</th>
                 <th class="px-6 py-3 text-right">Sale Count</th>
@@ -174,10 +175,11 @@ onMounted(fetchData)
             </thead>
             <tbody>
               <tr
-                v-for="item in paginatedData"
+                v-for="(item, index) in paginatedData"
                 :key="item.id"
                 class="border-b last:border-0 hover:bg-muted/50"
               >
+                <td class="px-6 py-4 text-sm text-muted-foreground">{{ (page - 1) * perPage + index + 1 }}</td>
                 <td class="px-6 py-4 text-sm">{{ formatDate(item.salesDate) }}</td>
                 <td class="px-6 py-4 text-sm">{{ item.store?.name || '-' }}</td>
                 <td class="px-6 py-4 text-sm text-right">{{ item.saleCount }}</td>

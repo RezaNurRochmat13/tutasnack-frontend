@@ -1,4 +1,4 @@
-import type { Store } from '~/types/store'
+import type { Store, StorePayload } from '~/types/store'
 
 export function useStores() {
   const { request } = useApi()
@@ -10,5 +10,25 @@ export function useStores() {
     return []
   }
 
-  return { list }
+  async function create(payload: StorePayload): Promise<Store> {
+    const res: any = await request('/stores', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+    return res.data || res
+  }
+
+  async function update(id: string, payload: StorePayload): Promise<Store> {
+    const res: any = await request(`/stores/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    })
+    return res.data || res
+  }
+
+  async function remove(id: string): Promise<void> {
+    await request(`/stores/${id}`, { method: 'DELETE' })
+  }
+
+  return { list, create, update, remove }
 }
