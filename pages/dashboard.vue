@@ -32,7 +32,7 @@ const recentTransactions = [
           <CardTitle class="text-sm font-medium text-muted-foreground">
             {{ stat.label }}
           </CardTitle>
-          <Icon :name="`lucide:${stat.icon}`" class="h-4 w-4 text-muted-foreground" />
+          <AppIcon :name="`lucide:${stat.icon}`" class="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div class="text-2xl font-bold">{{ stat.value }}</div>
@@ -81,15 +81,15 @@ const recentTransactions = [
         </CardHeader>
         <CardContent class="space-y-3">
           <Button variant="outline" class="w-full justify-start gap-3" @click="navigateTo('/sales-tracker')">
-            <Icon name="lucide:plus-circle" class="h-5 w-5" />
+            <AppIcon name="lucide:plus-circle" class="h-5 w-5" />
             New Sale
           </Button>
           <Button variant="outline" class="w-full justify-start gap-3" @click="navigateTo('/expense-tracker')">
-            <Icon name="lucide:minus-circle" class="h-5 w-5" />
+            <AppIcon name="lucide:minus-circle" class="h-5 w-5" />
             Add Expense
           </Button>
           <Button variant="outline" class="w-full justify-start gap-3" @click="navigateTo('/sales-income')">
-            <Icon name="lucide:file-bar-chart" class="h-5 w-5" />
+            <AppIcon name="lucide:file-bar-chart" class="h-5 w-5" />
             View Reports
           </Button>
         </CardContent>

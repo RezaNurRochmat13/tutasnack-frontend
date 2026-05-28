@@ -75,7 +75,7 @@ const expenseCategories = ['Ingredients', 'Packaging', 'Utilities', 'Maintenance
             <Input id="exp-date" v-model="date" type="date" />
           </div>
           <Button class="w-full" @click="addExpense">
-            <Icon name="lucide:plus-circle" class="mr-2 h-4 w-4" />
+            <AppIcon name="lucide:plus-circle" class="mr-2 h-4 w-4" />
             Add Expense
           </Button>
         </CardContent>

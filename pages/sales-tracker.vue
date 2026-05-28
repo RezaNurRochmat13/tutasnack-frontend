@@ -56,7 +56,7 @@ async function submitSale() {
           <div class="flex items-center justify-between">
             <Label>Items</Label>
             <Button variant="outline" size="sm" @click="addItem">
-              <Icon name="lucide:plus" class="mr-1 h-4 w-4" />
+              <AppIcon name="lucide:plus" class="mr-1 h-4 w-4" />
               Add Item
             </Button>
           </div>
@@ -99,7 +99,7 @@ async function submitSale() {
               class="mb-0.5"
               @click="removeItem(index)"
             >
-              <Icon name="lucide:x" class="h-4 w-4" />
+              <AppIcon name="lucide:x" class="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -125,7 +125,7 @@ async function submitSale() {
         </div>
 
         <Button class="w-full" @click="submitSale">
-          <Icon name="lucide:check" class="mr-2 h-4 w-4" />
+          <AppIcon name="lucide:check" class="mr-2 h-4 w-4" />
           Complete Sale
         </Button>
       </CardContent>

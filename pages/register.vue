@@ -31,8 +31,8 @@ async function handleRegister() {
 <template>
   <Card class="w-full max-w-md mx-4">
     <CardHeader class="text-center">
-      <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-        <Icon name="lucide:ice-cream" class="h-7 w-7 text-primary-foreground" />
+      <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary p-2">
+        <img src="/img/tuta-snack-white.png" alt="TutaSnack" class="h-full w-full object-contain" />
       </div>
       <CardTitle class="text-2xl">Create Account</CardTitle>
       <CardDescription>Register your TutaSnack account</CardDescription>
@@ -59,7 +59,7 @@ async function handleRegister() {
           {{ error }}
         </div>
         <Button type="submit" class="w-full" :disabled="store.loading">
-          <Icon v-if="store.loading" name="lucide:loader-circle" class="mr-2 h-4 w-4 animate-spin" />
+          <AppIcon v-if="store.loading" name="lucide:loader-circle" class="mr-2 h-4 w-4 animate-spin" />
           {{ store.loading ? 'Creating account...' : 'Create Account' }}
         </Button>
       </form>

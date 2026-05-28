@@ -37,7 +37,7 @@ function inviteUser() {
         <p class="text-sm text-muted-foreground">Manage team members and their roles</p>
       </div>
       <Button @click="showInviteDialog = true">
-        <Icon name="lucide:user-plus" class="mr-2 h-4 w-4" />
+        <AppIcon name="lucide:user-plus" class="mr-2 h-4 w-4" />
         Invite User
       </Button>
     </div>
@@ -69,7 +69,7 @@ function inviteUser() {
                 {{ user.status }}
               </Badge>
               <Button variant="ghost" size="icon">
-                <Icon name="lucide:more-horizontal" class="h-4 w-4" />
+                <AppIcon name="lucide:more-horizontal" class="h-4 w-4" />
               </Button>
             </div>
           </div>
