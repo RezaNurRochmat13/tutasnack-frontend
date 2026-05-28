@@ -1,6 +1,4 @@
-name = "tutasnack"
+name = "tutasnack-frontend"
 compatibility_date = "2026-05-28"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = ".output/public"
-
-[[env.production]]
+pages_build_output_dir = "dist"

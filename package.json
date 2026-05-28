@@ -8,8 +8,8 @@
     "generate": "nuxi generate",
     "preview": "nuxi preview",
     "postinstall": "nuxi prepare",
-    "cf-preview": "wrangler pages dev .output/public",
-    "cf-deploy": "nuxi build && wrangler pages deploy .output/public --project-name=tutasnack"
+    "cf-preview": "wrangler pages dev dist",
+    "cf-deploy": "nuxi build && wrangler pages deploy dist --project-name=tutasnack-frontend"
   },
   "dependencies": {
     "@iconify/vue": "^5.0.1",
