@@ -4,106 +4,231 @@ definePageMeta({
   middleware: 'auth',
 })
 
-const category = ref('')
-const description = ref('')
-const amount = ref(0)
-const date = ref(new Date().toISOString().split('T')[0])
+import type { Expense } from '~/types/expense'
 
-const expenses = ref([
-  { id: 1, category: 'Ingredients', description: 'Flour 25kg', amount: 180000, date: '2026-05-27' },
-  { id: 2, category: 'Packaging', description: 'Paper bags + labels', amount: 95000, date: '2026-05-27' },
-  { id: 3, category: 'Utilities', description: 'Electricity bill', amount: 350000, date: '2026-05-26' },
-  { id: 4, category: 'Maintenance', description: 'Fryer repair', amount: 150000, date: '2026-05-25' },
-])
+const { list, create, update, remove } = useExpenses()
+const toast = useToast()
 
-const totalExpenses = computed(() => {
-  return expenses.value.reduce((sum, e) => sum + e.amount, 0)
+const allData = ref<Expense[]>([])
+const loading = ref(false)
+
+const page = ref(1)
+const perPage = 10
+const totalPages = computed(() => Math.max(1, Math.ceil(allData.value.length / perPage)))
+const totalItems = computed(() => allData.value.length)
+
+const paginatedData = computed(() => {
+  const start = (page.value - 1) * perPage
+  return allData.value.slice(start, start + perPage)
 })
 
-async function addExpense() {
-  if (!description.value || !amount.value) return
-  expenses.value.unshift({
-    id: Date.now(),
-    category: category.value || 'Other',
-    description: description.value,
-    amount: amount.value,
-    date: date.value,
-  })
-  description.value = ''
-  amount.value = 0
-  category.value = ''
+const showDialog = ref(false)
+const editing = ref<Expense | null>(null)
+const formError = ref('')
+const form = reactive({ name: '', expenseDate: '', amount: 0 })
+
+function formatDate(iso: string) {
+  return iso.split('T')[0]
 }
 
-const expenseCategories = ['Ingredients', 'Packaging', 'Utilities', 'Maintenance', 'Rent', 'Salary', 'Marketing', 'Other']
+async function fetchData() {
+  loading.value = true
+  try {
+    allData.value = await list()
+    page.value = 1
+  } catch (e: any) {
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
+}
+
+function goToPage(p: number) {
+  page.value = p
+}
+
+function openCreate() {
+  editing.value = null
+  formError.value = ''
+  form.name = ''
+  form.expenseDate = new Date().toISOString().split('T')[0]
+  form.amount = 0
+  showDialog.value = true
+}
+
+function openEdit(item: Expense) {
+  editing.value = item
+  formError.value = ''
+  form.name = item.name
+  form.expenseDate = formatDate(item.expenseDate)
+  form.amount = item.amount
+  showDialog.value = true
+}
+
+function parseApiError(e: any): string {
+  const issues = e?.body?.error?.issues
+  if (Array.isArray(issues)) {
+    return issues.map((i: any) => `${i.path?.join('.')}: ${i.message}`).join('\n')
+  }
+  return e?.body?.error?.message || e?.body?.message || e.message || 'Something went wrong'
+}
+
+async function handleSave() {
+  formError.value = ''
+  if (!form.name.trim()) { formError.value = 'Name is required'; return }
+  if (form.amount <= 0) { formError.value = 'Amount must be greater than 0'; return }
+
+  try {
+    if (editing.value) {
+      await update(editing.value.id, { name: form.name, expenseDate: form.expenseDate, amount: form.amount })
+    } else {
+      await create({ name: form.name, expenseDate: form.expenseDate, amount: form.amount })
+    }
+    showDialog.value = false
+    await fetchData()
+    toast.success(editing.value ? 'Expense updated' : 'Expense created')
+  } catch (e: any) {
+    formError.value = parseApiError(e)
+  }
+}
+
+async function confirmDelete(id: string) {
+  if (!confirm('Delete this expense?')) return
+  try {
+    await remove(id)
+    await fetchData()
+    toast.success('Expense deleted')
+  } catch (e: any) {
+    toast.error(parseApiError(e))
+  }
+}
+
+const totalAmount = computed(() => allData.value.reduce((sum, i) => sum + i.amount, 0))
+
+onMounted(fetchData)
 </script>
 
 <template>
   <div class="space-y-6">
-    <div>
-      <h1 class="text-2xl font-bold">Expense Tracker</h1>
-      <p class="text-sm text-muted-foreground">Monitor and manage your business expenses</p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold">Expense Tracker</h1>
+        <p class="text-sm text-muted-foreground">Monitor and manage your business expenses</p>
+      </div>
+      <Button @click="openCreate">
+        <AppIcon name="lucide:plus" class="mr-2 h-4 w-4" />
+        Add Expense
+      </Button>
     </div>
 
-    <div class="grid gap-6 md:grid-cols-2">
-      <Card>
+    <Card>
+      <CardHeader class="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Expense List</CardTitle>
+          <CardDescription>
+            Total: Rp {{ totalAmount.toLocaleString() }} &middot; {{ totalItems }} entries
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent class="p-0">
+        <div v-if="loading" class="flex items-center justify-center py-12">
+          <AppIcon name="lucide:loader-circle" class="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+
+        <template v-else-if="allData.length === 0">
+          <div class="py-12 text-center text-sm text-muted-foreground">
+            No expenses yet. Click "Add Expense" to create one.
+          </div>
+        </template>
+
+        <template v-else>
+          <table class="w-full">
+            <thead>
+              <tr class="border-b text-left text-xs font-medium text-muted-foreground">
+                <th class="px-6 py-3">Date</th>
+                <th class="px-6 py-3">Name</th>
+                <th class="px-6 py-3 text-right">Amount</th>
+                <th class="px-6 py-3 text-right w-28">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in paginatedData"
+                :key="item.id"
+                class="border-b last:border-0 hover:bg-muted/50"
+              >
+                <td class="px-6 py-4 text-sm">{{ formatDate(item.expenseDate) }}</td>
+                <td class="px-6 py-4 text-sm">{{ item.name }}</td>
+                <td class="px-6 py-4 text-sm text-right font-medium text-destructive">
+                  -Rp {{ item.amount.toLocaleString() }}
+                </td>
+                <td class="px-6 py-4 text-right">
+                  <div class="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" @click="openEdit(item)">
+                      <AppIcon name="lucide:pencil" class="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" class="text-destructive hover:text-destructive" @click="confirmDelete(item.id)">
+                      <AppIcon name="lucide:trash-2" class="h-4 w-4" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div v-if="totalPages > 1" class="flex items-center justify-between border-t px-6 py-3">
+            <p class="text-sm text-muted-foreground">
+              Page {{ page }} of {{ totalPages }}
+            </p>
+            <div class="flex gap-1">
+              <Button variant="outline" size="sm" :disabled="page <= 1" @click="goToPage(page - 1)">
+                <AppIcon name="lucide:chevron-left" class="h-4 w-4" />
+                Prev
+              </Button>
+              <Button
+                v-for="p in totalPages"
+                :key="p"
+                :variant="p === page ? 'default' : 'outline'"
+                size="sm"
+                @click="goToPage(p)"
+              >
+                {{ p }}
+              </Button>
+              <Button variant="outline" size="sm" :disabled="page >= totalPages" @click="goToPage(page + 1)">
+                Next
+                <AppIcon name="lucide:chevron-right" class="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </template>
+      </CardContent>
+    </Card>
+
+    <div v-if="showDialog" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <Card class="w-full max-w-md mx-4">
         <CardHeader>
-          <CardTitle>Add Expense</CardTitle>
-          <CardDescription>Record a new expense</CardDescription>
+          <CardTitle>{{ editing ? 'Edit Expense' : 'Add Expense' }}</CardTitle>
+          <CardDescription>{{ editing ? 'Update the expense' : 'Record a new expense' }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="space-y-2">
-            <Label for="exp-category">Category</Label>
-            <select
-              id="exp-category"
-              v-model="category"
-              class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-            >
-              <option value="" disabled>Select category</option>
-              <option v-for="cat in expenseCategories" :key="cat" :value="cat">{{ cat }}</option>
-            </select>
-          </div>
-          <div class="space-y-2">
-            <Label for="exp-desc">Description</Label>
-            <Input id="exp-desc" v-model="description" placeholder="What was this expense for?" />
-          </div>
-          <div class="space-y-2">
-            <Label for="exp-amount">Amount (Rp)</Label>
-            <Input id="exp-amount" v-model.number="amount" type="number" min="0" placeholder="0" />
+            <Label for="exp-name">Name</Label>
+            <Input id="exp-name" v-model="form.name" placeholder="e.g. Electricity bill" />
           </div>
           <div class="space-y-2">
             <Label for="exp-date">Date</Label>
-            <Input id="exp-date" v-model="date" type="date" />
+            <Input id="exp-date" v-model="form.expenseDate" type="date" />
           </div>
-          <Button class="w-full" @click="addExpense">
-            <AppIcon name="lucide:plus-circle" class="mr-2 h-4 w-4" />
-            Add Expense
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Expense History</CardTitle>
-          <CardDescription>Total: Rp {{ totalExpenses.toLocaleString() }}</CardDescription>
-        </CardHeader>
-        <CardContent>
           <div class="space-y-2">
-            <div
-              v-for="expense in expenses"
-              :key="expense.id"
-              class="flex items-center justify-between rounded-lg border p-3"
-            >
-              <div class="space-y-1">
-                <div class="flex items-center gap-2">
-                  <Badge>{{ expense.category }}</Badge>
-                  <span class="text-xs text-muted-foreground">{{ expense.date }}</span>
-                </div>
-                <p class="text-sm font-medium">{{ expense.description }}</p>
-              </div>
-              <p class="text-sm font-semibold text-destructive">
-                -Rp {{ expense.amount.toLocaleString() }}
-              </p>
-            </div>
+            <Label for="exp-amount">Amount (Rp)</Label>
+            <Input id="exp-amount" v-model.number="form.amount" type="number" min="0" placeholder="0" />
+          </div>
+          <div v-if="formError" class="rounded-md bg-destructive/10 p-3 text-sm text-destructive whitespace-pre-line">
+            {{ formError }}
+          </div>
+          <div class="flex gap-2">
+            <Button variant="outline" class="flex-1" @click="showDialog = false">Cancel</Button>
+            <Button class="flex-1" @click="handleSave">{{ editing ? 'Update' : 'Save' }}</Button>
           </div>
         </CardContent>
       </Card>
