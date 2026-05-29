@@ -4,8 +4,10 @@ import type { PaginationMeta } from '~/types/pagination'
 export function useSalesTracker() {
   const { request } = useApi()
 
-  async function list(page = 1, limit = 10): Promise<{ data: SalesTracker[]; pagination: PaginationMeta | null }> {
-    const res: any = await request(`/sales-tracker?page=${page}&limit=${limit}`, { method: 'GET' })
+  async function list(page = 1, limit = 10, storeId?: string): Promise<{ data: SalesTracker[]; pagination: PaginationMeta | null }> {
+    let url = `/sales-tracker?page=${page}&limit=${limit}`
+    if (storeId) url += `&storeId=${storeId}`
+    const res: any = await request(url, { method: 'GET' })
     return {
       data: (res.data || res || []) as SalesTracker[],
       pagination: res.pagination ?? null,
