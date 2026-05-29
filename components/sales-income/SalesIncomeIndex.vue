@@ -16,6 +16,7 @@ const page = ref(1)
 const perPage = 10
 const totalPages = computed(() => pagination.value?.totalPages ?? 1)
 const totalItems = computed(() => pagination.value?.total ?? 0)
+const selectedStoreId = ref('')
 
 const showDialog = ref(false)
 const editing = ref<SalesIncome | null>(null)
@@ -26,7 +27,7 @@ const form = reactive({ salesDate: '', amount: 0, storeId: '' })
 async function fetchData() {
   loading.value = true
   try {
-    const [res, storeList] = await Promise.all([list(page.value, perPage), listStores()])
+    const [res, storeList] = await Promise.all([list(page.value, perPage, selectedStoreId.value || undefined), listStores()])
     data.value = res.data
     pagination.value = res.pagination
     stores.value = storeList
@@ -101,6 +102,11 @@ async function confirmDelete(id: string) {
   }
 }
 
+watch(selectedStoreId, () => {
+  page.value = 1
+  fetchData()
+})
+
 onMounted(() => {
   page.value = 1
   fetchData()
@@ -125,6 +131,17 @@ onMounted(() => {
         <div>
           <CardTitle>Income List</CardTitle>
           <CardDescription>{{ totalItems }} entries</CardDescription>
+        </div>
+        <div class="flex items-center gap-2">
+          <Label for="store-filter" class="text-sm">Store</Label>
+          <select
+            id="store-filter"
+            v-model="selectedStoreId"
+            class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+          >
+            <option value="">All Stores</option>
+            <option v-for="s in stores" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
         </div>
       </CardHeader>
 

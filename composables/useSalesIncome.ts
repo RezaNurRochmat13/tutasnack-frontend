@@ -4,8 +4,10 @@ import type { PaginationMeta } from '~/types/pagination'
 export function useSalesIncome() {
   const { request } = useApi()
 
-  async function list(page = 1, limit = 10): Promise<{ data: SalesIncome[]; pagination: PaginationMeta | null }> {
-    const res: any = await request(`/sales-income?page=${page}&limit=${limit}`, { method: 'GET' })
+  async function list(page = 1, limit = 10, storeId?: string): Promise<{ data: SalesIncome[]; pagination: PaginationMeta | null }> {
+    let url = `/sales-income?page=${page}&limit=${limit}`
+    if (storeId) url += `&storeId=${storeId}`
+    const res: any = await request(url, { method: 'GET' })
     return {
       data: (res.data || res || []) as SalesIncome[],
       pagination: res.pagination ?? null,
