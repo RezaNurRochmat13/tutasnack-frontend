@@ -35,6 +35,14 @@ export default defineNuxtConfig({
       title: 'TutaSnack - Sales Tracker',
       meta: [
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'theme-color', content: '#000000' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-title', content: 'TutaSnack' },
+      ],
+      link: [
+        { rel: 'icon', type: 'image/png', href: '/favicon.png' },
+        { rel: 'apple-touch-icon', href: '/img/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/manifest.json' },
       ],
     },
   },
