@@ -4,7 +4,8 @@ definePageMeta({
   middleware: 'auth',
 })
 
-const { request } = useApi()
+const { totalExpense: fetchTotalExpense, totalRevenue: fetchTotalRevenue, monthlyRecap: fetchMonthlyRecapData, yearlyRecap, salesTrackerByStore } = useDashboard()
+const { list: listStores } = useStores()
 
 const totalExpense = ref(0)
 const grossRevenue = ref(0)
@@ -19,33 +20,53 @@ const years = computed(() => {
   return [y - 2, y - 1, y, y + 1]
 })
 
-interface MonthlyRecap {
-  year: number
-  month: string
-  total: number
-}
-const monthlyData = ref<MonthlyRecap[]>([])
+const monthlyData = ref<{ year: number; month: string; total: number }[]>([])
+
+// Yearly recap
+const yearlyData = ref<{ month: string; total: number }[]>([])
+const yearlyRecapYear = ref(currentYear)
+
+// Per-store recap
+const stores = ref<{ id: string; name: string }[]>([])
+const selectedStoreId = ref('')
+const storeRecapData = ref<{
+  storeId: string
+  storeName: string
+  totalSaleCount: number
+  totalSoldCount: number
+}[]>([])
 
 async function fetchTotals() {
-  const [expenseRes, revenueRes]: any[] = await Promise.all([
-    request('/dashboard/total-expense', { method: 'GET' }),
-    request('/dashboard/total-revenue', { method: 'GET' }),
+  const [expense, revenue] = await Promise.all([
+    fetchTotalExpense(),
+    fetchTotalRevenue(),
   ])
-  totalExpense.value = expenseRes.data?.total ?? expenseRes.total ?? 0
-  const rd = revenueRes.data || revenueRes
-  grossRevenue.value = rd.gross ?? 0
-  netRevenue.value = rd.net ?? 0
+  totalExpense.value = expense
+  grossRevenue.value = revenue.gross
+  netRevenue.value = revenue.net
 }
 
 async function fetchMonthlyRecap() {
-  const res: any = await request(`/dashboard/monthly-recap?year=${selectedYear.value}`, { method: 'GET' })
-  monthlyData.value = (res.data || res || []) as MonthlyRecap[]
+  monthlyData.value = await fetchMonthlyRecapData(selectedYear.value)
+}
+
+async function fetchYearlyRecap() {
+  yearlyData.value = await yearlyRecap(yearlyRecapYear.value)
+}
+
+async function fetchStoreRecap() {
+  storeRecapData.value = await salesTrackerByStore(selectedStoreId.value || undefined)
+}
+
+async function initStores() {
+  const data = await listStores()
+  stores.value = data.map((s) => ({ id: s.id, name: s.name }))
 }
 
 async function fetchAll() {
   loading.value = true
   try {
-    await Promise.all([fetchTotals(), fetchMonthlyRecap()])
+    await Promise.all([fetchTotals(), fetchMonthlyRecap(), fetchYearlyRecap(), fetchStoreRecap(), initStores()])
   } catch (e: any) {
     console.error(e)
   } finally {
@@ -54,6 +75,8 @@ async function fetchAll() {
 }
 
 watch(selectedYear, fetchMonthlyRecap)
+watch(yearlyRecapYear, fetchYearlyRecap)
+watch(selectedStoreId, fetchStoreRecap)
 
 onMounted(fetchAll)
 
@@ -152,6 +175,103 @@ function monthName(m: string) {
 
           <div v-if="monthlyData.length === 0" class="py-12 text-center text-sm text-muted-foreground">
             No data for {{ selectedYear }}
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Yearly Recap -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Yearly Recap</CardTitle>
+            <CardDescription>Sales recap by month</CardDescription>
+          </div>
+          <div class="flex items-center gap-2">
+            <Label for="yearly-year-filter" class="text-sm">Year</Label>
+            <select
+              id="yearly-year-filter"
+              v-model="yearlyRecapYear"
+              class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            >
+              <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
+            </select>
+          </div>
+        </CardHeader>
+        <CardContent class="p-0">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b text-left text-xs font-medium text-muted-foreground">
+                  <th class="w-10 px-6 py-3">#</th>
+                  <th class="px-6 py-3">Month</th>
+                  <th class="px-6 py-3 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(item, index) in yearlyData"
+                  :key="`${yearlyRecapYear}-${item.month}`"
+                  class="border-b last:border-0 hover:bg-muted/50"
+                >
+                  <td class="px-6 py-4 text-sm text-muted-foreground">{{ index + 1 }}</td>
+                  <td class="px-6 py-4 text-sm font-medium">{{ monthName(item.month) }} {{ yearlyRecapYear }}</td>
+                  <td class="px-6 py-4 text-sm text-right">Rp {{ item.total.toLocaleString() }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-if="yearlyData.length === 0" class="py-12 text-center text-sm text-muted-foreground">
+            No data for {{ yearlyRecapYear }}
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Per-Store Recap -->
+      <Card>
+        <CardHeader class="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Per-Store Recap</CardTitle>
+            <CardDescription>Sales tracker aggregated by store</CardDescription>
+          </div>
+          <div class="flex items-center gap-2">
+            <Label for="store-filter" class="text-sm">Store</Label>
+            <select
+              id="store-filter"
+              v-model="selectedStoreId"
+              class="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            >
+              <option value="">All Stores</option>
+              <option v-for="s in stores" :key="s.id" :value="s.id">{{ s.name }}</option>
+            </select>
+          </div>
+        </CardHeader>
+        <CardContent class="p-0">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b text-left text-xs font-medium text-muted-foreground">
+                  <th class="w-10 px-6 py-3">#</th>
+                  <th class="px-6 py-3">Store</th>
+                  <th class="px-6 py-3 text-right">Total Sale Count</th>
+                  <th class="px-6 py-3 text-right">Total Sold Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(item, index) in storeRecapData"
+                  :key="item.storeId"
+                  class="border-b last:border-0 hover:bg-muted/50"
+                >
+                  <td class="px-6 py-4 text-sm text-muted-foreground">{{ index + 1 }}</td>
+                  <td class="px-6 py-4 text-sm font-medium">{{ item.storeName }}</td>
+                  <td class="px-6 py-4 text-sm text-right">{{ item.totalSaleCount.toLocaleString() }}</td>
+                  <td class="px-6 py-4 text-sm text-right">{{ item.totalSoldCount.toLocaleString() }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div v-if="storeRecapData.length === 0" class="py-12 text-center text-sm text-muted-foreground">
+              No data available
+            </div>
           </div>
         </CardContent>
       </Card>
